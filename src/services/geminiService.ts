@@ -80,7 +80,7 @@ ${baseContext}
   return response.text();
 };
 
-// Gemini 2.5 Flash Image で画像生成
+// Gemini 2.5 Flash Image / Gemini 3 Pro Image Preview (NanoBanana Pro) で画像生成
 export const generateImage = async (
   apiKey: string,
   prompt: string,
@@ -90,13 +90,34 @@ export const generateImage = async (
 
   const fullPrompt = `Children's book illustration, cute and colorful style: ${prompt}. Style: watercolor, soft colors, child-friendly, storybook art, warm and gentle atmosphere.`;
 
-  const response = await ai.models.generateContent({
+  // モデルに応じた設定
+  const modelConfig: {
+    model: string;
+    contents: string;
+    config: {
+      responseModalities: string[];
+      imageConfig?: {
+        aspectRatio?: string;
+        imageSize?: string;
+      };
+    };
+  } = {
     model: modelName,
     contents: fullPrompt,
     config: {
       responseModalities: ["Text", "Image"],
     },
-  });
+  };
+
+  // Gemini 3 Pro Image Preview (NanoBanana Pro) の場合の追加設定
+  if (modelName === "gemini-3-pro-image-preview") {
+    modelConfig.config.imageConfig = {
+      aspectRatio: "1:1",
+      imageSize: "1K", // デフォルトは1Kだが明示的に指定
+    };
+  }
+
+  const response = await ai.models.generateContent(modelConfig);
 
   // レスポンスから画像データを取得
   if (response.candidates && response.candidates[0]?.content?.parts) {
