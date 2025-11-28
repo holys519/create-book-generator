@@ -238,7 +238,6 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
                     <option value="gemini-2.0-flash">Gemini 2.0 Flash (推奨)</option>
                     <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                     <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    <option value="NanoBanana Pro">NanoBanana Pro</option>
                   </select>
                 </div>
                 <div>
@@ -251,13 +250,12 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
                     disabled={isGenerating}
                     className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
-                    <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image (推奨)</option>
-                    <option value="gemini-pro-vision">Gemini Pro Vision</option>
-                    <option value="NanoBanana Pro">NanoBanana Pro</option>
+                    <option value="gemini-2.5-flash-image">Gemini 2.5 Flash (Nano Banana) - 高速</option>
+                    <option value="gemini-3-pro-image-preview">Gemini 3 Pro (Nano Banana Pro) - 高品質</option>
                   </select>
                 </div>
                 <p className="col-span-full text-xs text-gray-400">
-                  ※ NanoBanana Proなどの外部モデルを使用する場合は、APIキーの権限や互換性をご確認ください。
+                  ※ Nano Banana Pro (Gemini 3 Pro) はより高品質な画像を生成しますが、生成に時間がかかる場合があります。
                 </p>
               </div>
             )}
