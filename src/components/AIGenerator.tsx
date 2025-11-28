@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Sparkles, Image as ImageIcon, Trash2, Loader2, BookOpen, AlertCircle } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Trash2, Loader2, BookOpen, AlertCircle, Settings2 } from 'lucide-react';
 import { getApiKey } from '../utils/crypto';
 import { generateStoryText, generateImage, generateImagePrompt, analyzeBaseImages } from '../services/geminiService';
 import type { StoryPage, CoverData } from '../types';
@@ -16,6 +16,12 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, message: '' });
   const [error, setError] = useState<string | null>(null);
+  
+  // Model selection state
+  const [textModel, setTextModel] = useState('gemini-2.0-flash');
+  const [imageModel, setImageModel] = useState('gemini-2.5-flash-image');
+  const [showModelSettings, setShowModelSettings] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +71,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
       // ベース画像を分析
       if (baseImages.length > 0) {
         setProgress({ current: 0, total: pageCount + 2, message: '参考画像を分析中...' });
-        baseImageDescriptions = await analyzeBaseImages(apiKey, baseImages);
+        baseImageDescriptions = await analyzeBaseImages(apiKey, baseImages, textModel);
       }
 
       // 各ページを生成
@@ -77,7 +83,7 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
         });
 
         // 文章を生成
-        const storyText = await generateStoryText(apiKey, theme, i, pageCount, storyTexts);
+        const storyText = await generateStoryText(apiKey, theme, i, pageCount, storyTexts, textModel);
         storyTexts.push(storyText);
 
         setProgress({ 
@@ -87,12 +93,12 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
         });
 
         // 画像プロンプトを生成
-        const imagePrompt = await generateImagePrompt(apiKey, theme, storyText, baseImageDescriptions);
+        const imagePrompt = await generateImagePrompt(apiKey, theme, storyText, baseImageDescriptions, textModel);
         
         // 画像を生成
         let imageData: string | null = null;
         try {
-          imageData = await generateImage(apiKey, imagePrompt);
+          imageData = await generateImage(apiKey, imagePrompt, imageModel);
         } catch (imgError) {
           console.error('Image generation failed, continuing without image:', imgError);
         }
@@ -118,9 +124,10 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
           apiKey, 
           theme, 
           `表紙: ${theme}の物語`, 
-          baseImageDescriptions
+          baseImageDescriptions,
+          textModel
         );
-        coverImage = await generateImage(apiKey, coverPrompt);
+        coverImage = await generateImage(apiKey, coverPrompt, imageModel);
       } catch {
         console.error('Cover generation failed');
       }
@@ -204,6 +211,56 @@ export const AIGenerator: React.FC<AIGeneratorProps> = ({ onGenerate, onCancel }
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* モデル設定（トグル式） */}
+          <div className="border-t border-b border-gray-200 py-4">
+            <button
+              onClick={() => setShowModelSettings(!showModelSettings)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+            >
+              <Settings2 className="w-4 h-4" />
+              詳細設定（モデル変更）
+            </button>
+            
+            {showModelSettings && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    テキスト生成モデル
+                  </label>
+                  <select
+                    value={textModel}
+                    onChange={(e) => setTextModel(e.target.value)}
+                    disabled={isGenerating}
+                    className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (推奨)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="NanoBanana Pro">NanoBanana Pro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    画像生成モデル
+                  </label>
+                  <select
+                    value={imageModel}
+                    onChange={(e) => setImageModel(e.target.value)}
+                    disabled={isGenerating}
+                    className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image (推奨)</option>
+                    <option value="gemini-pro-vision">Gemini Pro Vision</option>
+                    <option value="NanoBanana Pro">NanoBanana Pro</option>
+                  </select>
+                </div>
+                <p className="col-span-full text-xs text-gray-400">
+                  ※ NanoBanana Proなどの外部モデルを使用する場合は、APIキーの権限や互換性をご確認ください。
+                </p>
+              </div>
+            )}
           </div>
 
           {/* ベース画像アップロード */}

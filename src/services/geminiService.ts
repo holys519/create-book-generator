@@ -7,10 +7,11 @@ export const generateStoryText = async (
   theme: string,
   pageNumber: number,
   totalPages: number,
-  previousContent: string[]
+  previousContent: string[],
+  modelName: string = "gemini-2.0-flash"
 ): Promise<string> => {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   const previousContext =
     previousContent.length > 0
@@ -48,10 +49,11 @@ export const generateImagePrompt = async (
   apiKey: string,
   theme: string,
   storyText: string,
-  baseImageDescriptions: string[]
+  baseImageDescriptions: string[],
+  modelName: string = "gemini-2.0-flash"
 ): Promise<string> => {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   const baseContext =
     baseImageDescriptions.length > 0
@@ -81,14 +83,15 @@ ${baseContext}
 // Gemini 2.5 Flash Image で画像生成
 export const generateImage = async (
   apiKey: string,
-  prompt: string
+  prompt: string,
+  modelName: string = "gemini-2.5-flash-image"
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey });
 
   const fullPrompt = `Children's book illustration, cute and colorful style: ${prompt}. Style: watercolor, soft colors, child-friendly, storybook art, warm and gentle atmosphere.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-image",
+    model: modelName,
     contents: fullPrompt,
     config: {
       responseModalities: ["Text", "Image"],
@@ -112,10 +115,11 @@ export const generateImage = async (
 // ベース画像を分析
 export const analyzeBaseImages = async (
   apiKey: string,
-  images: string[]
+  images: string[],
+  modelName: string = "gemini-2.0-flash"
 ): Promise<string[]> => {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   const descriptions: string[] = [];
 
