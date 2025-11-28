@@ -1,73 +1,66 @@
-# React + TypeScript + Vite
+# 絵本作成ジェネレーター (Storybook Generator)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AIを使って、誰でも簡単にオリジナルの絵本を作成できるWebアプリケーションです。
+テーマを入力するだけで、物語の文章と挿絵を自動生成し、世界に一つだけの絵本を作ることができます。
 
-Currently, two official plugins are available:
+![アプリのスクリーンショット](home.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ 特徴
 
-## React Compiler
+*   **AIによる物語生成**: テーマを入力するだけで、起承転結のあるストーリーを自動生成します。
+*   **挿絵の自動生成**: 物語の内容に合わせた可愛いイラストをAIが描きます。
+*   **スタイルの統一**: 生成されるイラストのタッチや雰囲気を統一し、絵本としての完成度を高めます。
+*   **直感的な操作**: 難しい設定は不要。ブラウザ上で簡単に操作できます。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 始め方
 
-## Expanding the ESLint configuration
+このアプリケーションを使用するには、GoogleのGemini APIキーが必要です。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. Google AI StudioでAPIキーを取得
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1.  [Google AI Studio](https://aistudio.google.com/app/apikey) にアクセスします。
+2.  Googleアカウントでログインします。
+3.  **"Create API key"** をクリックして、新しいAPIキーを作成します。
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**⚠️ 注意事項:**
+*   画像生成機能（Gemini 2.5 Flash Imageなど）を使用するには、Google Cloudプロジェクトで**請求先アカウント（クレジットカード情報）の登録**が必要になる場合があります。
+*   無料枠の範囲内であれば課金はされませんが、使用量やモデルによっては課金が発生する可能性があります。Googleの料金プランをご確認ください。
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. アプリケーションの起動
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/holys519/create-book-generator.git
+
+# ディレクトリに移動
+cd create-book-generator
+
+# 依存関係をインストール
+npm install
+
+# 開発サーバーを起動
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 3. アプリケーションの使用
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1.  ブラウザで `http://localhost:5173` (または表示されるURL) にアクセスします。
+2.  画面右上の設定アイコン（またはAPIキー入力欄）から、取得したAPIキーを入力して保存します。
+3.  「絵本のテーマ」を入力し、ページ数などを設定して「絵本を作る」ボタンを押します。
+4.  AIが物語と絵を生成するのを待ちます。
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🛠️ 技術スタック
+
+*   React
+*   TypeScript
+*   Vite
+*   Tailwind CSS
+*   Google Gemini API (Gemini 2.0 Flash / Gemini 2.5 Flash Image)
+
+## 🔒 セキュリティについて
+
+入力されたAPIキーはブラウザのセッションストレージ（`sessionStorage`）に簡易的に暗号化されて保存されます。ブラウザのタブを閉じるとキーは削除されます。APIキーが外部のサーバーに送信されることはありません（GoogleのAPIサーバーを除く）。
+
+## 📄 ライセンス
+
+[MIT License](LICENSE)
