@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Book, BookOpen, Trash2, Calendar, FileText, Sparkles, Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Book, BookOpen, Trash2, Calendar, FileText, Sparkles, Settings, Download, Upload, FolderDown, FolderUp } from 'lucide-react';
 import type { Book as BookType } from '../types';
 import { ApiKeySettings } from './ApiKeySettings';
 import { getApiKey } from '../utils/crypto';
+import { downloadBookshelf, downloadSingleBook, uploadBookshelf, uploadSingleBook } from '../utils/bookExport';
 
 interface HomeProps {
   books: BookType[];
@@ -10,15 +11,74 @@ interface HomeProps {
   onAIGenerate: () => void;
   onOpenBook: (book: BookType) => void;
   onDeleteBook: (id: string) => void;
+  onUpdateBooks: (books: BookType[]) => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, onOpenBook, onDeleteBook }) => {
+export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, onOpenBook, onDeleteBook, onUpdateBooks }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const bookshelfFileRef = useRef<HTMLInputElement>(null);
+  const singleBookFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHasApiKey(!!getApiKey());
   }, []);
+
+  // 本棚全体をダウンロード
+  const handleDownloadBookshelf = () => {
+    if (books.length === 0) {
+      alert('ダウンロードする本がありません');
+      return;
+    }
+    downloadBookshelf(books);
+  };
+
+  // 本棚をアップロード（復元）
+  const handleUploadBookshelf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const mode = window.confirm(
+        '現在の本棚を置き換えますか？\n\n[OK] 置き換える（既存の本は削除されます）\n[キャンセル] 追加する（既存の本はそのまま）'
+      ) ? 'replace' as const : 'merge' as const;
+      
+      const { books: newBooks, importedCount } = await uploadBookshelf(file, books, mode);
+      onUpdateBooks(newBooks);
+      alert(`${importedCount}冊の本をインポートしました`);
+    } catch (error) {
+      alert(`インポートに失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
+    }
+    
+    // ファイル選択をリセット
+    e.target.value = '';
+    setShowImportMenu(false);
+  };
+
+  // 本単体をアップロード
+  const handleUploadSingleBook = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const { books: newBooks, importedBook } = await uploadSingleBook(file, books);
+      onUpdateBooks(newBooks);
+      alert(`「${importedBook.title}」をインポートしました`);
+    } catch (error) {
+      alert(`インポートに失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
+    }
+    
+    // ファイル選択をリセット
+    e.target.value = '';
+    setShowImportMenu(false);
+  };
+
+  // 本単体をダウンロード
+  const handleDownloadBook = (book: BookType, e: React.MouseEvent) => {
+    e.stopPropagation();
+    downloadSingleBook(book);
+  };
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('ja-JP', {
@@ -42,15 +102,81 @@ export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, on
               <p className="text-amber-100 text-sm mt-1">あなたの物語を、一冊の本に。</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`p-3 rounded-full transition-colors ${
-              showSettings ? 'bg-white/20' : 'hover:bg-white/10'
-            }`}
-            title="API設定"
-          >
-            <Settings className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* 本棚ダウンロード */}
+            <button
+              onClick={handleDownloadBookshelf}
+              className="p-3 rounded-full hover:bg-white/10 transition-colors"
+              title="本棚をダウンロード"
+            >
+              <FolderDown className="w-6 h-6" />
+            </button>
+            
+            {/* インポートメニュー */}
+            <div className="relative">
+              <button
+                onClick={() => setShowImportMenu(!showImportMenu)}
+                className={`p-3 rounded-full transition-colors ${
+                  showImportMenu ? 'bg-white/20' : 'hover:bg-white/10'
+                }`}
+                title="インポート"
+              >
+                <FolderUp className="w-6 h-6" />
+              </button>
+              
+              {showImportMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-50">
+                  <button
+                    onClick={() => bookshelfFileRef.current?.click()}
+                    className="w-full px-4 py-3 text-left text-gray-700 hover:bg-amber-50 flex items-center gap-3"
+                  >
+                    <Upload className="w-5 h-5 text-amber-600" />
+                    <div>
+                      <div className="font-medium">本棚をインポート</div>
+                      <div className="text-xs text-gray-500">バックアップから復元</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => singleBookFileRef.current?.click()}
+                    className="w-full px-4 py-3 text-left text-gray-700 hover:bg-amber-50 flex items-center gap-3"
+                  >
+                    <Upload className="w-5 h-5 text-orange-600" />
+                    <div>
+                      <div className="font-medium">本を追加</div>
+                      <div className="text-xs text-gray-500">1冊の本をインポート</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* 隠しファイル入力 */}
+            <input
+              ref={bookshelfFileRef}
+              type="file"
+              accept=".json"
+              onChange={handleUploadBookshelf}
+              className="hidden"
+            />
+            <input
+              ref={singleBookFileRef}
+              type="file"
+              accept=".json"
+              onChange={handleUploadSingleBook}
+              className="hidden"
+            />
+            
+            {/* 設定ボタン */}
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-3 rounded-full transition-colors ${
+                showSettings ? 'bg-white/20' : 'hover:bg-white/10'
+              }`}
+              title="API設定"
+            >
+              <Settings className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -152,19 +278,31 @@ export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, on
                       </h3>
                     </div>
 
-                    {/* 削除ボタン */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`「${book.title || '無題の本'}」を削除しますか？`)) {
-                          onDeleteBook(book.id);
-                        }
-                      }}
-                      className="absolute top-3 right-3 p-2 bg-red-500/80 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="削除"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* アクションボタン */}
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* ダウンロードボタン */}
+                      <button
+                        onClick={(e) => handleDownloadBook(book, e)}
+                        className="p-2 bg-blue-500/80 hover:bg-blue-600 text-white rounded-full"
+                        title="この本をダウンロード"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      
+                      {/* 削除ボタン */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`「${book.title || '無題の本'}」を削除しますか？`)) {
+                            onDeleteBook(book.id);
+                          }
+                        }}
+                        className="p-2 bg-red-500/80 hover:bg-red-600 text-white rounded-full"
+                        title="削除"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* 本の情報 */}

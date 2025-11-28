@@ -203,6 +203,12 @@ function App() {
     setMode('view');
   };
 
+  // 本のリストを更新して保存
+  const handleUpdateBooks = (newBooks: Book[]) => {
+    setBooks(newBooks);
+    saveBooks(newBooks);
+  };
+
   // ホーム画面
   if (mode === 'home') {
     return (
@@ -212,6 +218,7 @@ function App() {
         onAIGenerate={handleAIGenerate}
         onOpenBook={handleOpenBook}
         onDeleteBook={handleDeleteBook}
+        onUpdateBooks={handleUpdateBooks}
       />
     );
   }
