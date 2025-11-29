@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Book, BookOpen, Trash2, Calendar, FileText, Sparkles, Settings, Download, Upload, FolderDown, FolderUp } from 'lucide-react';
+import { Plus, Book, BookOpen, Trash2, Calendar, FileText, Sparkles, Settings, Download, Upload, FolderDown, FolderUp, RefreshCw, FolderPlus } from 'lucide-react';
 import type { Book as BookType } from '../types';
 import { ApiKeySettings } from './ApiKeySettings';
 import { getApiKey } from '../utils/crypto';
@@ -14,12 +14,14 @@ interface HomeProps {
   onUpdateBooks: (books: BookType[]) => void;
 }
 
+type ImportMode = 'replace' | 'merge' | 'single';
+
 export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, onOpenBook, onDeleteBook, onUpdateBooks }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
-  const bookshelfFileRef = useRef<HTMLInputElement>(null);
-  const singleBookFileRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<ImportMode>('merge');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHasApiKey(!!getApiKey());
@@ -34,44 +36,40 @@ export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, on
     downloadBookshelf(books);
   };
 
-  // 本棚をアップロード（復元）
-  const handleUploadBookshelf = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    try {
-      const mode = window.confirm(
-        '現在の本棚を置き換えますか？\n\n[OK] 置き換える（既存の本は削除されます）\n[キャンセル] 追加する（既存の本はそのまま）'
-      ) ? 'replace' as const : 'merge' as const;
-      
-      const { books: newBooks, importedCount } = await uploadBookshelf(file, books, mode);
-      onUpdateBooks(newBooks);
-      alert(`${importedCount}冊の本をインポートしました`);
-    } catch (error) {
-      alert(`インポートに失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
-    }
-    
-    // ファイル選択をリセット
-    e.target.value = '';
+  // インポートボタンクリック時
+  const handleImportClick = (mode: ImportMode) => {
+    setImportMode(mode);
     setShowImportMenu(false);
+    fileInputRef.current?.click();
   };
 
-  // 本単体をアップロード
-  const handleUploadSingleBook = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ファイルアップロード処理
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     try {
-      const { books: newBooks, importedBook } = await uploadSingleBook(file, books);
-      onUpdateBooks(newBooks);
-      alert(`「${importedBook.title}」をインポートしました`);
+      if (importMode === 'single') {
+        // 本単体をインポート
+        const { books: newBooks, importedBook } = await uploadSingleBook(file, books);
+        onUpdateBooks(newBooks);
+        alert(`「${importedBook.title}」をインポートしました`);
+      } else {
+        // 本棚をインポート（replace または merge）
+        const { books: newBooks, importedCount } = await uploadBookshelf(file, books, importMode);
+        onUpdateBooks(newBooks);
+        if (importMode === 'replace') {
+          alert(`${importedCount}冊の本で本棚を置き換えました`);
+        } else {
+          alert(`${importedCount}冊の本を追加しました（既存の本はそのまま）`);
+        }
+      }
     } catch (error) {
       alert(`インポートに失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
     }
     
     // ファイル選択をリセット
     e.target.value = '';
-    setShowImportMenu(false);
   };
 
   // 本単体をダウンロード
@@ -125,25 +123,41 @@ export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, on
               </button>
               
               {showImportMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-50">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl py-2 z-50">
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                    本棚データ
+                  </div>
                   <button
-                    onClick={() => bookshelfFileRef.current?.click()}
-                    className="w-full px-4 py-3 text-left text-gray-700 hover:bg-amber-50 flex items-center gap-3"
+                    onClick={() => handleImportClick('merge')}
+                    className="w-full px-4 py-3 text-left text-gray-700 hover:bg-green-50 flex items-center gap-3"
                   >
-                    <Upload className="w-5 h-5 text-amber-600" />
+                    <FolderPlus className="w-5 h-5 text-green-600" />
                     <div>
-                      <div className="font-medium">本棚をインポート</div>
-                      <div className="text-xs text-gray-500">バックアップから復元</div>
+                      <div className="font-medium">本棚に追加</div>
+                      <div className="text-xs text-gray-500">既存の本を保持したまま追加</div>
                     </div>
                   </button>
                   <button
-                    onClick={() => singleBookFileRef.current?.click()}
+                    onClick={() => handleImportClick('replace')}
                     className="w-full px-4 py-3 text-left text-gray-700 hover:bg-amber-50 flex items-center gap-3"
                   >
-                    <Upload className="w-5 h-5 text-orange-600" />
+                    <RefreshCw className="w-5 h-5 text-amber-600" />
                     <div>
-                      <div className="font-medium">本を追加</div>
-                      <div className="text-xs text-gray-500">1冊の本をインポート</div>
+                      <div className="font-medium">本棚を置き換え</div>
+                      <div className="text-xs text-red-400">⚠️ 既存の本は削除されます</div>
+                    </div>
+                  </button>
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-b border-gray-100 mt-1">
+                    単体
+                  </div>
+                  <button
+                    onClick={() => handleImportClick('single')}
+                    className="w-full px-4 py-3 text-left text-gray-700 hover:bg-blue-50 flex items-center gap-3"
+                  >
+                    <Upload className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <div className="font-medium">1冊の本を追加</div>
+                      <div className="text-xs text-gray-500">個別の本ファイルをインポート</div>
                     </div>
                   </button>
                 </div>
@@ -152,17 +166,10 @@ export const Home: React.FC<HomeProps> = ({ books, onCreateNew, onAIGenerate, on
             
             {/* 隠しファイル入力 */}
             <input
-              ref={bookshelfFileRef}
+              ref={fileInputRef}
               type="file"
               accept=".json"
-              onChange={handleUploadBookshelf}
-              className="hidden"
-            />
-            <input
-              ref={singleBookFileRef}
-              type="file"
-              accept=".json"
-              onChange={handleUploadSingleBook}
+              onChange={handleFileUpload}
               className="hidden"
             />
             
