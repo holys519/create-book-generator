@@ -103,7 +103,7 @@ export const uploadBookshelf = async (
     throw new Error('本棚データの形式が正しくありません');
   }
   
-  const validBooks = data.books.filter(validateBook);
+  const validBooks: Book[] = data.books.filter(validateBook);
   
   if (validBooks.length === 0) {
     throw new Error('有効な本のデータが見つかりませんでした');
@@ -114,7 +114,7 @@ export const uploadBookshelf = async (
   } else {
     // merge: IDが重複する場合は新しいIDを付与
     const existingIds = new Set(existingBooks.map(b => b.id));
-    const mergedBooks = validBooks.map(book => {
+    const mergedBooks = validBooks.map((book: Book) => {
       if (existingIds.has(book.id)) {
         return { ...book, id: Date.now().toString() + Math.random().toString(36).slice(2) };
       }
